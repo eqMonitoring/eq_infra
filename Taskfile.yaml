@@ -1,0 +1,10 @@
+# Example Taskfile.yaml
+version: '3'
+
+tasks:
+  setup-tf-state-bucket:
+    desc: Ensure the GCS bucket for Terraform state exists
+    cmds:
+      - gcloud storage buckets describe gs://eq-monitoring-tf-state || gcloud storage buckets create gs://eq-monitoring-tf-state --project=YOUR_GCP_PROJECT_ID --location=EUROPE-WEST9
+      - gcloud storage buckets update gs://eq-monitoring-tf-state --enable-versioning
+    silent: true

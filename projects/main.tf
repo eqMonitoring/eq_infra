@@ -5,34 +5,14 @@ provider "google" {
   zone    = var.zone
 }
 
-# Fetch the existing GCP Billing Account
-data "google_billing_account" "eq_monitoring_billing_account" {
-  display_name = var.billing_account
-}
-
-# Create the GCP Project
-resource "google_project" "eq_project" {
-  name            = var.project_name
-  project_id      = var.project_id
-  billing_account = data.google_billing_account.eq_monitoring_billing_account.id
-  lifecycle {
-    prevent_destroy = true
-  }
-}
-resource "google_resource_manager_lien" "lien_protection" {
-  parent       = "projects/${google_project.mon_projet.number}"
-  restrictions = ["resourcemanager.projects.delete"]
-  origin       = "protection-manuelle"
-  reason       = "Ce projet est critique pour la production."
-}
-
-# Create a GCS bucket to store Terraform state files
-resource "google_storage_bucket" "tf_state_bucket" {
-  name          = "eq-monitoring-tf-state"
-  location      = "EUROPE-WEST9"
-  force_destroy = false
-  uniform_bucket_level_access = true
-  versioning {
-    enabled = true
-  }
+# Activate the necessary GCP APIs using for_each
+resource "google_project_service" "enabled_apis" {
+  for_each = toset(var.gcp_apis_to_enable)
+  project = var.project_id
+  service = each.value
+  disable_on_destroy = false
+  # Ensure serviceusage is enabled before other APIs
+  depends_on = [
+    google_project_service.enabled_apis["serviceusage.googleapis.com"]
+  ]
 }
